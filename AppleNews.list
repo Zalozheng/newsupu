@@ -4,3 +4,5 @@ DOMAIN-WILDCARD,news-*.apple.com
 DOMAIN-SUFFIX,apple.news
 DOMAIN,news.apple.com
 DOMAIN,gspe1-ssl.ls.apple.com
+DOMAIN,newsletter-edge.apple.com
+DOMAIN,news.iadsdk.apple.com
