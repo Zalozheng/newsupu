@@ -1,15 +1,7 @@
 # NAME: AppleNews
 # UPDATED: 2026-10-11
+DOMAIN-REGEX,^news-.*\.apple\.com$
 DOMAIN-SUFFIX,apple.news
 DOMAIN,news.apple.com
-DOMAIN,news-assets.apple.com
-DOMAIN,news-client.apple.com
-DOMAIN,news-edge.apple.com
-DOMAIN,news-events.apple.com
-DOMAIN,news-todayview.apple.com
-DOMAIN,news-client-search.apple.com
 DOMAIN,gspe1-ssl.ls.apple.com
 
-news-app-events.apple.com
-news-sports-events.apple.com
-newsletter-edge.apple.com
