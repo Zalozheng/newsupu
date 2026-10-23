@@ -1,7 +1,6 @@
 # NAME: AppleNews
-# UPDATED: 2026-10-11
-DOMAIN-REGEX,^news-.*\.apple\.com$
+# UPDATED: 2026-10-23
+DOMAIN-WILDCARD,news-*.apple.com
 DOMAIN-SUFFIX,apple.news
 DOMAIN,news.apple.com
 DOMAIN,gspe1-ssl.ls.apple.com
-
