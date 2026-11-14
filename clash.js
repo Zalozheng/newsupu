@@ -1,8 +1,15 @@
-// 保留订阅内的全部节点（不做地区筛选）
+// 保留所有有效节点（自动剔除“剩余流量/套餐到期”等伪节点），其余全部保留
+// 自动开启 TCP Fast Open (TFO) 加速握手
 // 只有一个分组：自动测速（600秒间隔 + 200ms容差，减少频繁跳节点触发人机验证）
-// 保留 IPv6 + 银行 App 绕过 Fake-IP + TikTok/Gemini 屏蔽 QUIC 防卡顿 + YouTube 放行 QUIC
+// 保留 IPv6 + 修正境外 DNS + 银行 App 绕过 Fake-IP + TikTok/Gemini 屏蔽 QUIC 防卡顿 + 全流媒体加速
 function main(config) {
-  const allProxies = config.proxies || [];
+  const invalidRe = /剩余|流量|到期|过期|重置|官网|网址|套餐|通知|群|TG|Telegram|Traffic|Expire|Reset/i;
+  const allProxies = (config.proxies || []).filter((p) => !invalidRe.test(p.name));
+
+  allProxies.forEach((p) => {
+    p.tfo = true;
+  });
+  config.proxies = allProxies;
 
   config["proxy-groups"] = allProxies.length
     ? [{
@@ -55,7 +62,7 @@ function main(config) {
       ],
       "geosite:geolocation-!cn": [
         "https://dns.google/dns-query",
-        "https://8.8.8.8/dns-query",
+        "8.8.8.8",
       ],
     },
   };
@@ -63,6 +70,9 @@ function main(config) {
   config.rules = [
     "AND,((GEOSITE,tiktok),(NETWORK,UDP),(DST-PORT,443)),REJECT",
     "AND,((GEOSITE,google-gemini),(NETWORK,UDP),(DST-PORT,443)),REJECT",
+    "GEOSITE,bbc,🚀 节点选择",
+    "DOMAIN-SUFFIX,pocketcasts.com,🚀 节点选择",
+    "GEOSITE,github,🚀 节点选择",
     "GEOSITE,google-gemini,🚀 节点选择",
     "GEOSITE,tiktok,🚀 节点选择",
     "GEOSITE,youtube,🚀 节点选择",
