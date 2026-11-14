@@ -1,25 +1,21 @@
-// 保留所有有效节点（自动剔除“剩余流量/套餐到期”等伪节点），其余全部保留
-// 自动开启 TCP Fast Open (TFO) 加速握手
-// 只有一个分组：自动测速（600秒间隔 + 200ms容差，减少频繁跳节点触发人机验证）
-// 保留 IPv6 + 修正境外 DNS + 银行 App 绕过 Fake-IP + TikTok/Gemini 屏蔽 QUIC 防卡顿 + 全流媒体加速
+// 所有协议都保留，只保留 美国 / 日本 / 台湾 的节点，其余节点直接删除
+// 只有一个分组：自动测速（600秒间隔 + 200ms容差，HTTPS 测速防 CF 节点探测拦截）
+// 保留 IPv6 + 银行 App 绕过 Fake-IP + TikTok/Gemini 屏蔽 QUIC 防卡顿 + YouTube/GitHub/英语播客加速
 function main(config) {
-  const invalidRe = /剩余|流量|到期|过期|重置|官网|网址|套餐|通知|群|TG|Telegram|Traffic|Expire|Reset/i;
-  const allProxies = (config.proxies || []).filter((p) => !invalidRe.test(p.name));
+  const re = /美国|美國|\bUS\b|USA|United States|Los Angeles|San Jose|Seattle|🇺🇸|日本|\bJP\b|Japan|Tokyo|Osaka|🇯🇵|台湾|台灣|\bTW\b|Taiwan|Taipei|🇹🇼/i;
 
-  allProxies.forEach((p) => {
-    p.tfo = true;
-  });
-  config.proxies = allProxies;
+  const kept = (config.proxies || []).filter((p) => re.test(p.name));
+  config.proxies = kept;
 
-  config["proxy-groups"] = allProxies.length
+  config["proxy-groups"] = kept.length
     ? [{
         name: "🚀 节点选择",
         type: "url-test",
-        url: "http://www.gstatic.com/generate_204",
+        url: "https://cp.cloudflare.com/generate_204",
         interval: 600,
         tolerance: 200,
         timeout: 3000,
-        proxies: allProxies.map((p) => p.name),
+        proxies: kept.map((p) => p.name),
       }]
     : [{ name: "🚀 节点选择", type: "select", proxies: ["DIRECT"] }];
 
