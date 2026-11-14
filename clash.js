@@ -1,10 +1,10 @@
-// 所有协议都保留，只保留 美国 / 日本 / 台湾 的节点，其余节点直接删除
+// 所有协议都保留，仅屏蔽 香港 / 韩国 节点及订阅信息伪节点，其余所有国家全部放行
 // 只有一个分组：自动测速（600秒间隔 + 200ms容差，HTTPS 测速防 CF 节点探测拦截）
 // 保留 IPv6 + 银行 App 绕过 Fake-IP + TikTok/Gemini 屏蔽 QUIC 防卡顿 + YouTube/GitHub/英语播客加速
 function main(config) {
-  const re = /美国|美國|\bUS\b|USA|United States|Los Angeles|San Jose|Seattle|🇺🇸|日本|\bJP\b|Japan|Tokyo|Osaka|🇯🇵|台湾|台灣|\bTW\b|Taiwan|Taipei|🇹🇼/i;
+  const blockRe = /香港|\bHK\b|Hong\s*Kong|🇭🇰|韩国|韓國|\bKR\b|Korea|Seoul|🇰🇷|剩余|流量|到期|过期|重置|官网|网址|套餐|通知|群|TG|Telegram|Traffic|Expire|Reset/i;
 
-  const kept = (config.proxies || []).filter((p) => re.test(p.name));
+  const kept = (config.proxies || []).filter((p) => !blockRe.test(p.name));
   config.proxies = kept;
 
   config["proxy-groups"] = kept.length
