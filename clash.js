@@ -8,9 +8,9 @@ function main(config) {
     ? [{
         name: "🚀 节点选择",
         type: "url-test",
-        url: "https://cp.cloudflare.com/generate_204",
-        interval: 600,
-        tolerance: 200,
+        url: "https://connectivitycheck.gstatic.com/generate_204",
+        interval: 300,
+        tolerance: 50,
         timeout: 3000,
         proxies: kept.map((p) => p.name),
       }]
@@ -63,6 +63,7 @@ function main(config) {
   config.rules = [
     "AND,((GEOSITE,tiktok),(NETWORK,UDP),(DST-PORT,443)),REJECT",
     "AND,((GEOSITE,google-gemini),(NETWORK,UDP),(DST-PORT,443)),REJECT",
+    "AND,((GEOSITE,google),(NETWORK,UDP),(DST-PORT,443)),REJECT",
     "GEOSITE,bbc,🚀 节点选择",
     "DOMAIN-SUFFIX,pocketcasts.com,🚀 节点选择",
     "GEOSITE,github,🚀 节点选择",
@@ -71,6 +72,7 @@ function main(config) {
     "DOMAIN-SUFFIX,gvt1.com,🚀 节点选择",
     "DOMAIN-SUFFIX,gvt2.com,🚀 节点选择",
     "DOMAIN-SUFFIX,gvt3.com,🚀 节点选择",
+    "DOMAIN-SUFFIX,xn--ngstr-lra8j.com,🚀 节点选择",
     "GEOSITE,tiktok,🚀 节点选择",
     "GEOSITE,youtube,🚀 节点选择",
     "GEOSITE,private,DIRECT",
