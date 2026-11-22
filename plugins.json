@@ -3,13 +3,8 @@
   "plugins": [
     { "name": "网易云音乐", "url": "https://cdn.jsdelivr.net/gh/buaiwanyouxi/musicfree-all@v0.1.4/musicfree-wy/github/wy.js", "version": "0.1.4" },
     { "name": "one-酷我", "url": "https://moro.cn.mt/plugins/kw.js", "version": "1.2.0" },
-    { "name": "好听轻音乐", "url": "https://gitee.com/kevinr/tvbox/raw/master/musicfree/plugins/htqyy.js", "version": "0.0.1" },
+    { "name": "好听轻音乐", "url": "https://gitee.com/kevinr/tvbox/raw/master/musicfree/plugins/htqyy.js", "version": "0.1.2" },
     { "name": "开心汽水", "url": "https://gitee.com/hongmengv5/musicfree/raw/master/qishui.js", "version": "0.1.5" },
-    { "name": "咪咕", "url": "https://moro.cn.mt/plugins/mg.js", "version": "0.0.1" },
-    { "name": "小枸音乐", "url": "https://fastly.jsdelivr.net/gh/Huibq/keep-alive/Music_Free/xiaogou.js", "version": "0.3.0" },
-    { "name": "小蜗音乐", "url": "https://fastly.jsdelivr.net/gh/Huibq/keep-alive/Music_Free/xiaowo.js", "version": "0.3.0" },
-    { "name": "小蜜音乐", "url": "https://fastly.jsdelivr.net/gh/Huibq/keep-alive/Music_Free/xiaomi.js", "version": "0.3.0" },
-    { "name": "小秋音乐", "url": "https://fastly.jsdelivr.net/gh/Huibq/keep-alive/Music_Free/xiaoqiu.js", "version": "0.3.0" },
-    { "name": "小芸音乐", "url": "https://fastly.jsdelivr.net/gh/Huibq/keep-alive/Music_Free/xiaoyun.js", "version": "0.3.0" }
+    { "name": "one-咪咕", "url": "https://moro.cn.mt/plugins/mg.js", "version": "1.2.0" }
   ]
 }
