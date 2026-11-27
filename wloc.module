@@ -1,8 +1,0 @@
-[Script]
-Apple WLOC = type=http-response,pattern=^https?:\/\/(?:gs-loc(?:-cn)?\.apple\.com|gsp-ssl\.ls\.apple\.com|bluedot\.is\.autonavi\.com(?:\.gds\.alibabadns\.com)?)\/clls\/wloc,requires-body=1,binary-body-mode=1,max-size=0,timeout=30,script-path= https://raw.githubusercontent.com/Zalozheng/newsupu/refs/heads/main/wloc.js,argument=longitude=-73.828052&latitude=40.694154&accuracy=25&randomRadius=0&logLevel=info
-
-[URL Rewrite]
-^https:\/\/gspe35-ssl\.ls\.apple\.com\/geo_manifest\/dynamic\/config\?(.*)country_code=CN(.*)$ https://gspe35-ssl.ls.apple.com/geo_manifest/dynamic/config?$1country_code=US$2 302
-
-[MITM]
-hostname = %APPEND% gs-loc.apple.com, gs-loc-cn.apple.com, gsp-ssl.ls.apple.com, gspe35-ssl.ls.apple.com, bluedot.is.autonavi.com, bluedot.is.autonavi.com.gds.alibabadns.com
