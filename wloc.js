@@ -1,8 +1,8 @@
-/* wloc.js - Shadowrocket Lite (Fixed Framing & Protobuf) */
+/* wloc.js - Shadowrocket Final (Request + Save + Response) */
 (() => {
   const url = typeof $request !== "undefined" ? $request.url || "" : "";
 
-  // 1. 响应阶段：解析 WLOC 帧头并改写 Protobuf 坐标
+  // 1. 响应阶段：改写 WLOC 二进制 Protobuf 坐标
   if (typeof $response !== "undefined") {
     if (!$response.body) return $done({});
 
@@ -22,14 +22,8 @@
     const lon = parseFloat(saved.longitude ?? args.longitude);
     const lat = parseFloat(saved.latitude ?? args.latitude);
     const acc = parseInt(saved.accuracy ?? args.accuracy ?? 25, 10);
-    if (isNaN(lon) || isNaN(lat)) return $done({});
 
-    const raw = $response.body instanceof Uint8Array ? $response.body : new Uint8Array($response.body);
-    if (raw.length < 10) return $done({});
-    if (raw[0] === 0x1f && raw[1] === 0x8b) {
-      console.log("[wloc] 响应为 Gzip 压缩流，请确认已启用 WLOC Req 规则去掉 Accept-Encoding");
-      return $done({});
-    }
+    if (isNaN(lon) || isNaN(lat)) return $done({});
 
     const readVarint = (buf, pos) => {
       let val = 0, mult = 1;
@@ -68,116 +62,79 @@
       return out;
     };
 
-    const parseFields = (buf) => {
-      const fields = [];
-      let pos = 0;
+    const patchLoc = (buf) => {
+      let pos = 0, hasLat = false, hasLon = false;
+      const chunks = [];
       while (pos < buf.length) {
         const start = pos;
         const [tag, next] = readVarint(buf, pos);
         pos = next;
-        const field = Math.floor(tag / 8), wire = tag & 7;
-        if (field === 0) throw new Error("field0");
-        let val;
-        if (wire === 0) { [val, pos] = readVarint(buf, pos); }
-        else if (wire === 1) { val = buf.slice(pos, pos + 8); pos += 8; }
-        else if (wire === 2) { const [len, end] = readVarint(buf, pos); val = buf.slice(end, end + len); pos = end + len; }
-        else if (wire === 5) { val = buf.slice(pos, pos + 4); pos += 4; }
+        const field = tag >> 3, wire = tag & 7;
+        if (wire === 0) {
+          const [, end] = readVarint(buf, pos);
+          if (field === 1) { hasLat = true; chunks.push(...writeVarint(tag), ...writeVarint(Math.round(lat * 1e8))); }
+          else if (field === 2) { hasLon = true; chunks.push(...writeVarint(tag), ...writeVarint(Math.round(lon * 1e8))); }
+          else if (field === 3) { chunks.push(...writeVarint(tag), ...writeVarint(acc)); }
+          else chunks.push(...buf.slice(start, end));
+          pos = end;
+        } else if (wire === 1) { chunks.push(...buf.slice(start, pos + 8)); pos += 8; }
+        else if (wire === 2) { const [len, end] = readVarint(buf, pos); chunks.push(...buf.slice(start, end + len)); pos = end + len; }
+        else if (wire === 5) { chunks.push(...buf.slice(start, pos + 4)); pos += 4; }
         else throw new Error("wire");
-        fields.push({ field, wire, val, raw: buf.slice(start, pos) });
       }
-      return fields;
+      return hasLat && hasLon ? new Uint8Array(chunks) : buf;
     };
 
-    const encodeLenField = (field, bytes) => [...writeVarint(field * 8 + 2), ...writeVarint(bytes.length), ...bytes];
-
-    const patchLoc = (buf, state) => {
-      const fields = parseFields(buf);
-      const hasLat = fields.some((f) => f.field === 1 && f.wire === 0);
-      const hasLon = fields.some((f) => f.field === 2 && f.wire === 0);
-      if (!hasLat || !hasLon) return buf;
-      const out = [];
-      for (const f of fields) {
-        if (f.field === 1 && f.wire === 0) out.push(...writeVarint(8), ...writeVarint(Math.round(lat * 1e8)));
-        else if (f.field === 2 && f.wire === 0) out.push(...writeVarint(16), ...writeVarint(Math.round(lon * 1e8)));
-        else if (f.field === 3 && f.wire === 0) out.push(...writeVarint(24), ...writeVarint(acc));
-        else out.push(...f.raw);
+    const walkProto = (buf, state) => {
+      let pos = 0;
+      const chunks = [];
+      while (pos < buf.length) {
+        const start = pos;
+        const [tag, next] = readVarint(buf, pos);
+        pos = next;
+        const field = tag >> 3, wire = tag & 7;
+        if (wire === 2) {
+          const [len, end] = readVarint(buf, pos);
+          const inner = buf.slice(end, end + len);
+          pos = end + len;
+          if (field === 2 || field === 5 || field === 22 || field === 24) {
+            try {
+              const patched = field === 2 || field === 5 ? patchLoc(inner) : walkProto(inner, state);
+              if (patched !== inner) state.count++;
+              chunks.push(...writeVarint(tag), ...writeVarint(patched.length), ...patched);
+              continue;
+            } catch {}
+          }
+          chunks.push(...buf.slice(start, pos));
+        } else if (wire === 0) { const [, end] = readVarint(buf, pos); chunks.push(...buf.slice(start, end)); pos = end; }
+        else if (wire === 1) { chunks.push(...buf.slice(start, pos + 8)); pos += 8; }
+        else if (wire === 5) { chunks.push(...buf.slice(start, pos + 4)); pos += 4; }
+        else throw new Error("wire");
       }
-      state.count++;
-      return new Uint8Array(out);
+      return new Uint8Array(chunks);
     };
 
-    const patchWifi = (buf, state) => {
-      const fields = parseFields(buf);
-      const isMac = fields.some((f) => {
-        if (f.field !== 1 || f.wire !== 2) return false;
-        const s = Array.from(f.val, (b) => String.fromCharCode(b)).join("");
-        return /^[0-9a-fA-F]{1,2}(:[0-9a-fA-F]{1,2}){5}$/.test(s);
-      });
-      if (!isMac) return buf;
-      const out = [];
-      for (const f of fields) {
-        if (f.field === 2 && f.wire === 2) {
-          try { out.push(...encodeLenField(2, patchLoc(f.val, state))); continue; } catch {}
-        }
-        out.push(...f.raw);
-      }
-      return new Uint8Array(out);
-    };
-
-    const patchCell = (buf, state) => {
-      const fields = parseFields(buf);
-      const out = [];
-      for (const f of fields) {
-        if (f.field === 5 && f.wire === 2) {
-          try { out.push(...encodeLenField(5, patchLoc(f.val, state))); continue; } catch {}
-        }
-        out.push(...f.raw);
-      }
-      return new Uint8Array(out);
-    };
-
-    const patchRoot = (buf, state) => {
-      const fields = parseFields(buf);
-      const out = [];
-      for (const f of fields) {
-        if (f.wire === 2 && f.field === 2) out.push(...encodeLenField(2, patchWifi(f.val, state)));
-        else if (f.wire === 2 && (f.field === 22 || f.field === 24)) out.push(...encodeLenField(f.field, patchCell(f.val, state)));
-        else out.push(...f.raw);
-      }
-      return new Uint8Array(out);
-    };
-
-    // 扫描 10 字节 WLOC 帧头并更新 2 字节大端长度
-    for (let base = 0; base <= Math.min(96, raw.length - 10); base++) {
-      const len = (raw[base + 8] << 8) | raw[base + 9];
-      if (len <= 0 || base + 10 + len > raw.length) continue;
-      const state = { count: 0 };
+    const raw = $response.body instanceof Uint8Array ? $response.body : new Uint8Array($response.body);
+    const state = { count: 0 };
+    for (let offset = 0; offset <= Math.min(64, raw.length - 10); offset++) {
       try {
-        const patched = patchRoot(raw.slice(base + 10, base + 10 + len), state);
-        if (state.count > 0 && patched.length <= 65535) {
-          const tail = raw.slice(base + 10 + len);
-          const out = new Uint8Array(base + 10 + patched.length + tail.length);
-          out.set(raw.slice(0, base + 8), 0);
-          out[base + 8] = (patched.length >> 8) & 0xff;
-          out[base + 9] = patched.length & 0xff;
-          out.set(patched, base + 10);
-          out.set(tail, base + 10 + patched.length);
-          console.log(`[wloc] 注入成功: ${lon},${lat} (offset=${base}, patched=${state.count})`);
+        const patched = walkProto(raw.slice(offset), state);
+        if (state.count > 0) {
+          const out = new Uint8Array(offset + patched.length);
+          out.set(raw.slice(0, offset), 0);
+          out.set(patched, offset);
+          console.log(`[wloc] 注入成功: ${lon},${lat} (patched=${state.count})`);
           const headers = { ...$response.headers };
-          delete headers["Content-Encoding"];
-          delete headers["content-encoding"];
-          delete headers["Transfer-Encoding"];
-          delete headers["transfer-encoding"];
-          headers["Content-Length"] = String(out.length);
+          delete headers["Content-Length"];
+          delete headers["content-length"];
           return $done({ status: 200, headers, body: out });
         }
       } catch {}
     }
-    console.log(`[wloc] 未匹配到可改写帧 (len=${raw.length})`);
     return $done({});
   }
 
-  // 2. 请求阶段：处理 /wloc-settings/save 坐标保存
+  // 2. 请求阶段：处理 /wloc-settings/save 坐标写入接口
   if (url.includes("/wloc-settings/save")) {
     const query = url.split("?")[1] || "";
     const params = Object.fromEntries(query.split("&").filter(Boolean).map((kv) => kv.split("=").map(decodeURIComponent)));
@@ -186,12 +143,13 @@
     const acc = parseInt(params.acc ?? params.accuracy ?? 25, 10);
     if (!isNaN(lat) && !isNaN(lon)) {
       $persistentStore.write(JSON.stringify({ latitude: lat, longitude: lon, accuracy: acc }), "wloc_settings");
+      console.log(`[wloc] 已保存坐标: ${lon},${lat}`);
       return $done({ response: { status: 200, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ok: true, lat, lon, acc }) } });
     }
     return $done({ response: { status: 400, body: "invalid params" } });
   }
 
-  // 3. 请求阶段：移除 Accept-Encoding 防止返回 Gzip
+  // 3. 请求阶段：移除 Accept-Encoding 确保返回未压缩二进制流
   const headers = { ...$request.headers };
   delete headers["Accept-Encoding"];
   delete headers["accept-encoding"];
