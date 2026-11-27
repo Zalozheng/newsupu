@@ -99,8 +99,14 @@
           pos = end + len;
           if (field === 2 || field === 5 || field === 22 || field === 24) {
             try {
-              const patched = field === 2 || field === 5 ? patchLoc(inner) : walkProto(inner, state);
-              if (patched !== inner) state.count++;
+              let patched = patchLoc(inner);
+              if (patched !== inner) {
+                state.count++;
+              } else {
+                const subBefore = state.count;
+                const nested = walkProto(inner, state);
+                if (state.count > subBefore) patched = nested;
+              }
               chunks.push(...writeVarint(tag), ...writeVarint(patched.length), ...patched);
               continue;
             } catch {}
