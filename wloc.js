@@ -70,6 +70,7 @@
         const [tag, next] = readVarint(buf, pos);
         pos = next;
         const field = tag >> 3, wire = tag & 7;
+        if (field === 0) throw new Error("field0");
         if (wire === 0) {
           const [, end] = readVarint(buf, pos);
           if (field === 1) { hasLat = true; chunks.push(...writeVarint(tag), ...writeVarint(Math.round(lat * 1e8))); }
@@ -93,6 +94,7 @@
         const [tag, next] = readVarint(buf, pos);
         pos = next;
         const field = tag >> 3, wire = tag & 7;
+        if (field === 0) throw new Error("field0");
         if (wire === 2) {
           const [len, end] = readVarint(buf, pos);
           const inner = buf.slice(end, end + len);
@@ -132,7 +134,7 @@
           out.set(raw.slice(0, offset), 0);
           out.set(patched, offset);
 
-          // 同步更新 WLOC 二进制包头中的长度字段（Big-Endian）
+          let hdrUpdated = false;
           if (offset >= 4) {
             const len32 = ((raw[offset - 4] << 24) | (raw[offset - 3] << 16) | (raw[offset - 2] << 8) | raw[offset - 1]) >>> 0;
             if (len32 === oldLen) {
@@ -140,17 +142,19 @@
               out[offset - 3] = (newLen >>> 16) & 0xff;
               out[offset - 2] = (newLen >>> 8) & 0xff;
               out[offset - 1] = newLen & 0xff;
+              hdrUpdated = true;
             }
           }
-          if (offset >= 2) {
+          if (!hdrUpdated && offset >= 2) {
             const len16 = (raw[offset - 2] << 8) | raw[offset - 1];
             if (len16 === oldLen && newLen <= 0xffff) {
               out[offset - 2] = (newLen >>> 8) & 0xff;
               out[offset - 1] = newLen & 0xff;
+              hdrUpdated = true;
             }
           }
 
-          console.log(`[wloc] 注入成功: ${lon},${lat} (patched=${state.count}, len ${oldLen}->${newLen})`);
+          console.log(`[wloc] 注入成功: ${lon},${lat} (offset=${offset}, hdr=${hdrUpdated}, patched=${state.count}, len ${oldLen}->${newLen})`);
           const headers = { ...$response.headers };
           delete headers["Content-Length"];
           delete headers["content-length"];
