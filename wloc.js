@@ -115,15 +115,36 @@
     };
 
     const raw = $response.body instanceof Uint8Array ? $response.body : new Uint8Array($response.body);
-    const state = { count: 0 };
     for (let offset = 0; offset <= Math.min(64, raw.length - 10); offset++) {
+      const state = { count: 0 };
       try {
         const patched = walkProto(raw.slice(offset), state);
         if (state.count > 0) {
-          const out = new Uint8Array(offset + patched.length);
+          const oldLen = raw.length - offset;
+          const newLen = patched.length;
+          const out = new Uint8Array(offset + newLen);
           out.set(raw.slice(0, offset), 0);
           out.set(patched, offset);
-          console.log(`[wloc] 注入成功: ${lon},${lat} (patched=${state.count})`);
+
+          // 同步更新 WLOC 二进制包头中的长度字段（Big-Endian）
+          if (offset >= 4) {
+            const len32 = ((raw[offset - 4] << 24) | (raw[offset - 3] << 16) | (raw[offset - 2] << 8) | raw[offset - 1]) >>> 0;
+            if (len32 === oldLen) {
+              out[offset - 4] = (newLen >>> 24) & 0xff;
+              out[offset - 3] = (newLen >>> 16) & 0xff;
+              out[offset - 2] = (newLen >>> 8) & 0xff;
+              out[offset - 1] = newLen & 0xff;
+            }
+          }
+          if (offset >= 2) {
+            const len16 = (raw[offset - 2] << 8) | raw[offset - 1];
+            if (len16 === oldLen && newLen <= 0xffff) {
+              out[offset - 2] = (newLen >>> 8) & 0xff;
+              out[offset - 1] = newLen & 0xff;
+            }
+          }
+
+          console.log(`[wloc] 注入成功: ${lon},${lat} (patched=${state.count}, len ${oldLen}->${newLen})`);
           const headers = { ...$response.headers };
           delete headers["Content-Length"];
           delete headers["content-length"];
@@ -131,6 +152,7 @@
         }
       } catch {}
     }
+    console.log(`[wloc] 未匹配到坐标字段 (rawLen=${raw.length})`);
     return $done({});
   }
 
