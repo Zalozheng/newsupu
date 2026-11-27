@@ -127,7 +127,7 @@
           const headers = { ...$response.headers };
           delete headers["Content-Length"];
           delete headers["content-length"];
-          return $done({ status: 200, headers, body: out });
+          return $done({ headers, body: out });
         }
       } catch {}
     }
