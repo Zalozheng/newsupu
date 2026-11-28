@@ -1,0 +1,12 @@
+# Apple News 与新闻小组件规则集（已单独定向至分组：applemap）
+DOMAIN-SUFFIX,qwapi.com
+DOMAIN-SUFFIX,apple.news
+DOMAIN-SUFFIX,news-client.apple.com
+DOMAIN,news-edge.apple.com
+DOMAIN,news-events.apple.com
+DOMAIN,news-assets.apple.com
+DOMAIN,news-client-search.apple.com
+DOMAIN,news.apple.com
+DOMAIN,newsletter-edge.apple.com
+DOMAIN,news.iadsdk.apple.com
+DOMAIN-WILDCARD,news-*.apple.com
