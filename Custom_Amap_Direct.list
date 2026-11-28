@@ -1,0 +1,2 @@
+# 高德蓝点定位放行规则集（须排在 Custom_Amap_Reject.list 之前，建议策略：DIRECT）
+DOMAIN-SUFFIX,bluedot.is.autonavi.com

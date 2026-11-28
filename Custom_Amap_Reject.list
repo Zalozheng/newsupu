@@ -1,0 +1,2 @@
+# 拦截高德底层图源规则集（放行所有 ls.apple.com 国际瓦片通道，建议策略：REJECT）
+DOMAIN-SUFFIX,autonavi.com

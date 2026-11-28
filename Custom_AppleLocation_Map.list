@@ -1,0 +1,10 @@
+# 苹果海外地图、地区检测与定位域名（含 maps.apple，让 MITM 脚本正常接管，策略：applemap）
+DOMAIN-SUFFIX,maps.apple
+DOMAIN,bag.itunes.apple.com
+DOMAIN,api.apple-cloudkit.com
+DOMAIN,gateway.icloud.com
+DOMAIN,gs-loc-cn.apple.com
+DOMAIN,gs-loc.apple.com
+DOMAIN-SUFFIX,ls.apple.com
+DOMAIN,configuration.apple.com
+DOMAIN-SUFFIX,apple-mapkit.com
