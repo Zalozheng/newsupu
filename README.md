@@ -6,3 +6,6 @@
 
 订阅地址：
 https://raw.githubusercontent.com/Zalozheng/newsupu/refs/heads/main/autossr.conf
+
+
+本地更新
